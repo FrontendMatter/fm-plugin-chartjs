@@ -1,6 +1,6 @@
 {
   "name": "fm-plugin-chartjs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "FrontendMatter <contact@frontendmatter.com> (http://www.frontendmatter.com)",
   "license": "UNLICENSED",
   "main": "js/chartjs.js",
@@ -11,5 +11,8 @@
   "bugs": {
     "url": "https://github.com/FrontendMatter/fm-plugin-chartjs/issues"
   },
-  "homepage": "https://github.com/FrontendMatter/fm-plugin-chartjs#readme"
+  "homepage": "https://github.com/FrontendMatter/fm-plugin-chartjs#readme",
+  "dependencies": {
+    "chart.js": "^2.7.3"
+  }
 }
