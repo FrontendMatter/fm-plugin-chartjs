@@ -16,7 +16,7 @@
   }
 
   &:not(&--vertical) {
-    &-item + &-item {
+    .chart-legend-item + .chart-legend-item {
       margin-left: 1rem;
     }
   }
