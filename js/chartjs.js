@@ -56,10 +56,10 @@ const update = (element) => {
 const globalSettings = {
   responsive: true,
   maintainAspectRatio: false,
-  defaultColor: "dark" == settings.charts.colorScheme ? settings.colors.gray[700] : settings.colors.gray[600],
-  defaultFontColor: "dark" == settings.charts.colorScheme ? settings.colors.gray[700] : settings.colors.gray[600],
-  defaultFontFamily: settings.fonts.base,
-  defaultFontSize: 13,
+  defaultColor: settings.charts.defaultColor,
+  defaultFontColor: settings.charts.defaultFontColor,
+  defaultFontFamily: settings.charts.defaultFontFamily,
+  defaultFontSize: settings.charts.defaultFontSize,
   layout: {
     padding: 0
   },
@@ -88,9 +88,19 @@ const globalSettings = {
     },
     arc: {
       backgroundColor: settings.colors.primary[500],
-      borderColor: "dark" == settings.charts.colorScheme ? settings.colors.gray[800] : settings.colors.white,
+      borderColor: settings.colors.white,
       borderWidth: 4
     }
+  },
+  legendCallback: function(a) {
+    var o = a.data,
+        r = "";
+    var td = a.options.elements.line.borderColor;
+    return o.datasets.forEach(function(a, e) {
+      var l = o.datasets[e].label;
+      var t = o.datasets[e].borderColor || td;
+      r += '<span class="chart-legend-item">', r += '<i class="chart-legend-indicator" style="background-color: ' + t + '"></i>', r += l, r += "</span>"
+    }), r
   },
   tooltips: {
     enabled: !1,
@@ -130,6 +140,9 @@ const globalSettings = {
       } else a.css("display", "none")
     },
     callbacks: {
+      title: function(a, e) {
+        return e.labels[a[0].index]
+      },
       label: function(a, e) {
         var t = e.datasets[a.datasetIndex].label || "",
             o = a.yLabel,
@@ -163,18 +176,198 @@ const doughnutSettings = {
   }
 }
 
+const dot = (str, obj) => str.split('.').reduce((o,i)=>o[i], obj)
+
+const applyColors = (el) => {
+  const chart = $(el).data('chart')
+
+  const lineBorderColor = (el.getAttribute('data-chart-line-border-color') || '').split(',').filter(v => !!v)
+  const lineBorderOpacity = new String(el.getAttribute('data-chart-line-border-opacity') || '1').split(',').filter(v => !!v)
+  const lineBackgroundColor = (el.getAttribute('data-chart-line-background-color') || '').split(',').filter(v => !!v)
+  const lineBackgroundOpacity = new String(el.getAttribute('data-chart-line-background-opacity') || '1').split(',').filter(v => !!v)
+
+  lineBorderColor.forEach((color, index) => {
+    let opacity = lineBorderOpacity[index]
+    if (color.indexOf(';') !== -1) {
+      color = color.split(';')
+      opacity = lineBorderOpacity[0].split(';')
+      chart.data.datasets[0].borderColor = []
+      color.forEach((color, index) => {
+        if (color.indexOf('.') !== -1) {
+          color = dot(color, settings.colors)
+        }
+        else {
+          color = hexToRGB(settings.colors.plain[color], opacity[index])
+        }
+        chart.data.datasets[0].borderColor.push(color)
+      })
+    }
+    else {
+      if (color.indexOf('.') !== -1) {
+        color = dot(color, settings.colors)
+      }
+      else {
+        color = hexToRGB(settings.colors.plain[color], opacity)
+      }
+      chart.data.datasets[index].borderColor = color
+    }
+  })
+
+  lineBackgroundColor.forEach((color, index) => {
+    let opacity = lineBackgroundOpacity[index]
+    if (color.indexOf(';') !== -1) {
+      color = color.split(';')
+      opacity = lineBackgroundOpacity[0].split(';')
+      chart.data.datasets[0].backgroundColor = []
+      color.forEach((color, index) => {
+        if (color.indexOf('.') !== -1) {
+          color = dot(color, settings.colors)
+        }
+        else {
+          color = hexToRGB(settings.colors.plain[color], opacity[index])
+        }
+        chart.data.datasets[0].backgroundColor.push(color)
+      })
+    }
+    else {
+      if (color.indexOf('.') !== -1) {
+        color = dot(color, settings.colors)
+      }
+      else {
+        color = hexToRGB(settings.colors.plain[color], opacity)
+      }
+      chart.data.datasets[index].backgroundColor = color
+    }
+  })
+
+  chart.update({ duration: 0 })
+
+  if ($(el).data('chart-legend')) {
+    document.querySelector($(el).data('chart-legend')).innerHTML = chart.generateLegend()
+  }
+}
+
 const create = (id, type = 'line', options = {}, data = {}) => {
-  var element = $(id)
-  var chart = new Chart(element, {
+  var el = $(id)
+  
+  const prefix = el.data('chart-prefix') || ''
+  const suffix = el.data('chart-suffix') || ''
+  const points = el.data('chart-points')
+  const hideAxes = el.data('chart-hide-axes')
+
+  if (hideAxes) {
+    options = Chart.helpers.merge({
+      scales: {
+        yAxes: [{
+          display: false
+        }],
+        xAxes: [{
+          display: false
+        }]
+      }
+    }, options)
+  }
+
+  if (type === 'area') {
+    type = 'line'
+    options = Chart.helpers.merge({
+      elements: {
+        line: {
+          fill: 'start'
+        }
+      }
+    }, options)
+  }
+
+  if (points) {
+    options = Chart.helpers.merge({
+      elements: {
+        point: {
+          pointStyle: 'circle',
+          radius: 4,
+          hoverRadius: 5,
+          backgroundColor: settings.colors.white,
+          borderColor: settings.colors.primary[500],
+          borderWidth: 2
+        }
+      }
+    }, options)
+  }
+
+  if (type === 'radar') {
+    options = Chart.helpers.merge({
+      scale: {
+        ticks: {
+          display: false,
+          beginAtZero: true,
+          maxTicksLimit: 4
+        },
+        pointLabels: {
+          fontSize: settings.charts.defaultFontSize
+        }
+      }
+    }, options)
+  }
+
+  if (type === 'roundedBar') {
+    options = Chart.helpers.merge({
+      barRoundness: 1.2
+    }, options)
+  }
+
+  if (type === 'doughnut' || type === 'radar') {
+    options = Chart.helpers.merge({
+      scales: {
+        yAxes: {
+          gridLines: {
+            zeroLineWidth: 0
+          }
+        }
+      }
+    }, options)
+  }
+
+  if (prefix.length || suffix.length) {
+    options = Chart.helpers.merge({
+      scales: {
+        yAxes: [{
+          ticks: {
+            callback: function(a) {
+              if (!(a % 10))
+                return `${prefix}${a}${suffix}`
+            }
+          }
+        }]
+      },
+      tooltips: {
+        callbacks: {
+          label: function(a, e) {
+            var t = e.datasets[a.datasetIndex].label || "",
+                o = a.yLabel,
+                r = "";
+
+            if (type === 'doughnut') {
+              o = e.datasets[0].data[a.index]
+            }
+            return 1 < e.datasets.length && (r += '<span class="popover-body-label mr-auto">' + t + "</span>"), r += `<span class="popover-body-value">${prefix}${o}${suffix}</span>`
+          }
+        }
+      }
+    }, options)
+  }
+
+  var chart = new Chart(el, {
     type: type,
     options: options,
     data: data
   })
-  element.data("chart", chart)
-  if (element.data("chart-legend")) {
-    document.querySelector(element.data("chart-legend"))
+  el.data('chart', chart)
+  if (el.data('chart-legend')) {
+    document.querySelector(el.data('chart-legend'))
       .innerHTML = chart.generateLegend()
   }
+
+  applyColors(document.querySelector(id))
 }
 
 const init = () => {
@@ -189,14 +382,17 @@ const init = () => {
     gridLines: {
       borderDash: [2],
       borderDashOffset: [2],
-      color: "dark" == settings.charts.colorScheme ? settings.colors.gray[900] : settings.colors.gray[100],
-      drawBorder: !1,
-      drawTicks: !1,
-      lineWidth: 0,
-      zeroLineWidth: 0,
-      zeroLineColor: "dark" == settings.charts.colorScheme ? settings.colors.gray[900] : settings.colors.gray[100],
+      color: settings.charts.gridLinesColor,
+      drawBorder: false,
+      drawTicks: false,
+      lineWidth: settings.charts.lineWidth,
+      zeroLineWidth: settings.charts.zeroLineWidth,
+      zeroLineColor: settings.charts.zeroLineColor,
       zeroLineBorderDash: [2],
       zeroLineBorderDashOffset: [2]
+    },
+    angleLines: {
+      color: settings.charts.angleLinesColor
     },
     ticks: {
       beginAtZero: !0,
@@ -235,14 +431,48 @@ const init = () => {
   })
 }
 
+export const hexToRGB = (hex, alpha) => {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+
+  if (alpha) {
+    return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")"
+  } else {
+    return "rgb(" + r + ", " + g + ", " + b + ")"
+  }
+}
+
 const Charts = {
   settings,
   init,
   add,
   update,
-  create
+  create,
+  applyColors,
+  hexToRGB
 }
 
 if (window !== undefined) {
   window.Charts = Charts
+
+  Charts.init()
+
+  const observer = new MutationObserver((mutations) => { 
+    mutations.forEach(mutation => applyColors(mutation.target))
+   })
+
+  var nodes = document.querySelectorAll('.chart canvas')
+  nodes.forEach(node => {
+    observer.observe(node, { 
+      attributes: true, 
+      attributeOldValue: false, 
+      attributeFilter: [
+        'data-chart-line-border-color', 
+        'data-chart-line-border-opacity',
+        'data-chart-line-background-color', 
+        'data-chart-line-background-opacity'
+      ]
+    })
+  })
 }
