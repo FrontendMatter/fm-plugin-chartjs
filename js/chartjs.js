@@ -254,6 +254,7 @@ const create = (id, type = 'line', options = {}, data = {}) => {
   const suffix = el.data('chart-suffix') || ''
   const points = el.data('chart-points')
   const hideAxes = el.data('chart-hide-axes')
+  const disableTooltips = el.data('chart-disable-tooltips')
 
   if (hideAxes) {
     options = Chart.helpers.merge({
@@ -352,6 +353,15 @@ const create = (id, type = 'line', options = {}, data = {}) => {
             return 1 < e.datasets.length && (r += '<span class="popover-body-label mr-auto">' + t + "</span>"), r += `<span class="popover-body-value">${prefix}${o}${suffix}</span>`
           }
         }
+      }
+    }, options)
+  }
+
+  if (disableTooltips) {
+    options = Chart.helpers.merge({
+      tooltips: {
+        enabled: false,
+        custom: function() {}
       }
     }, options)
   }
@@ -462,7 +472,7 @@ if (window !== undefined) {
     mutations.forEach(mutation => applyColors(mutation.target))
    })
 
-  var nodes = document.querySelectorAll('.chart canvas')
+  var nodes = document.querySelectorAll('.chart-canvas')
   nodes.forEach(node => {
     observer.observe(node, { 
       attributes: true, 
