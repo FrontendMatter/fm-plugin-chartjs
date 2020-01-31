@@ -1,6 +1,6 @@
 {
   "name": "fm-plugin-chartjs",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": "FrontendMatter <contact@frontendmatter.com> (http://www.frontendmatter.com)",
   "license": "UNLICENSED",
   "main": "js/chartjs.js",

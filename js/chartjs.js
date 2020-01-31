@@ -180,6 +180,22 @@ const dot = (str, obj) => str.split('.').reduce((o,i)=>o[i], obj)
 
 const applyColors = (el) => {
   const chart = $(el).data('chart')
+  const darkMode = el.hasAttribute('data-chart-dark-mode')
+  
+  if (chart.options.scales.yAxes[0] !== undefined) {
+    chart.options.scales.yAxes[0].gridLines = {
+      color: !!darkMode ? settings.colors.darkMode.border : settings.charts.gridLinesColor,
+      zeroLineColor: !!darkMode ? settings.colors.darkMode.border : settings.charts.zeroLineColor
+    }
+    chart.options.scales.yAxes[0].angleLines = {
+      color: !!darkMode ? settings.colors.darkMode.border : settings.charts.angleLinesColor
+    }
+  }
+
+  if (chart.config.type === 'doughnut') {
+    chart.data.datasets[0].borderColor = !!darkMode ? settings.colors.darkMode.bodyBg : settings.colors.white
+    chart.data.datasets[0].hoverBorderColor = !!darkMode ? settings.colors.darkMode.bodyBg : settings.colors.white
+  }
 
   const lineBorderColor = (el.getAttribute('data-chart-line-border-color') || '').split(',').filter(v => !!v)
   const lineBorderOpacity = new String(el.getAttribute('data-chart-line-border-opacity') || '1').split(',').filter(v => !!v)
@@ -240,7 +256,7 @@ const applyColors = (el) => {
     }
   })
 
-  chart.update({ duration: 0 })
+  chart.update()
 
   if ($(el).data('chart-legend')) {
     document.querySelector($(el).data('chart-legend')).innerHTML = chart.generateLegend()
