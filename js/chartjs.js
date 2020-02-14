@@ -207,7 +207,10 @@ const applyColors = (el) => {
     if (color.indexOf(';') !== -1) {
       color = color.split(';')
       opacity = lineBorderOpacity[0].split(';')
+      
       chart.data.datasets[0].borderColor = []
+      chart.data.datasets[0].pointBackgroundColor = []
+
       color.forEach((color, index) => {
         if (color.indexOf('.') !== -1) {
           color = dot(color, settings.colors)
@@ -216,6 +219,7 @@ const applyColors = (el) => {
           color = hexToRGB(settings.colors.plain[color], opacity[index])
         }
         chart.data.datasets[0].borderColor.push(color)
+        chart.data.datasets[0].pointBackgroundColor.push(settings.colors.white)
       })
     }
     else {
@@ -226,31 +230,61 @@ const applyColors = (el) => {
         color = hexToRGB(settings.colors.plain[color], opacity)
       }
       chart.data.datasets[index].borderColor = color
+      chart.data.datasets[index].pointBackgroundColor = settings.colors.white
     }
   })
 
+  let ctx = el.getContext('2d')
+  let canvasHeight = el.scrollHeight
+  let gradient = null
+
+  let gradientEndOpacity = 0.001
+  if (chart.config.type.toLowerCase().indexOf('bar') !== -1) {
+    gradientEndOpacity = 0.2
+  }
+
   lineBackgroundColor.forEach((color, index) => {
     let opacity = lineBackgroundOpacity[index]
+
+    gradient = gradient || color.indexOf('gradient:') !== -1
+    color = color.replace(/gradient\:/ig, '')
+
     if (color.indexOf(';') !== -1) {
       color = color.split(';')
       opacity = lineBackgroundOpacity[0].split(';')
       chart.data.datasets[0].backgroundColor = []
       color.forEach((color, index) => {
+        let hex = color
         if (color.indexOf('.') !== -1) {
           color = dot(color, settings.colors)
         }
         else {
           color = hexToRGB(settings.colors.plain[color], opacity[index])
         }
+        if (gradient) {
+          let gradientCanvas = ctx.createLinearGradient(0,0,0,canvasHeight)
+          gradientCanvas.addColorStop(0, color)
+          gradientCanvas.addColorStop(1, hexToRGB(hex, gradientEndOpacity))
+          color = gradientCanvas
+        }
         chart.data.datasets[0].backgroundColor.push(color)
       })
     }
     else {
+      let hex
       if (color.indexOf('.') !== -1) {
         color = dot(color, settings.colors)
+        hex = color
       }
       else {
-        color = hexToRGB(settings.colors.plain[color], opacity)
+        hex = settings.colors.plain[color]
+        color = hexToRGB(hex, opacity)
+      }
+      if (gradient) {
+        let gradientCanvas = ctx.createLinearGradient(0,0,0,canvasHeight)
+        gradientCanvas.addColorStop(0, color)
+        gradientCanvas.addColorStop(1, hexToRGB(hex, gradientEndOpacity))
+        color = gradientCanvas
       }
       chart.data.datasets[index].backgroundColor = color
     }
@@ -302,7 +336,7 @@ const create = (id, type = 'line', options = {}, data = {}) => {
         point: {
           pointStyle: 'circle',
           radius: 4,
-          hoverRadius: 5,
+          hoverRadius: 4,
           backgroundColor: settings.colors.white,
           borderColor: settings.colors.primary[500],
           borderWidth: 2
@@ -497,7 +531,8 @@ if (window !== undefined) {
         'data-chart-line-border-color', 
         'data-chart-line-border-opacity',
         'data-chart-line-background-color', 
-        'data-chart-line-background-opacity'
+        'data-chart-line-background-opacity',
+        'data-chart-dark-mode'
       ]
     })
   })
